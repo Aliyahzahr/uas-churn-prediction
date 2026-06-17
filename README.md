@@ -45,8 +45,8 @@ uas-churn-prediction/
 - [x] EDA (Exploratory Data Analysis)
 - [x] Direct Modeling
 - [x] Preprocessing & Modeling
-- [ ] Hyperparameter Tuning
-- [ ] Deployment ke Streamlit Cloud
+- [x] Hyperparameter Tuning
+- [x] Deployment ke Streamlit Cloud
 
 ---
 
