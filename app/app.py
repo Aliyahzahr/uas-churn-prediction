@@ -3,9 +3,11 @@ import time
 from datetime import datetime
 
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import seaborn as sns
 import streamlit as st
 
 # =====================================================
@@ -344,6 +346,22 @@ def load_assets():
     )
 
 
+@st.cache_data
+def load_raw_data():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    paths_to_try = [
+        os.path.join(current_dir, "..", "data", "Sales - Marketing customer dataset.csv"),
+        os.path.join(current_dir, "data", "Sales - Marketing customer dataset.csv"),
+        os.path.join(current_dir, "notebook", "data", "Sales - Marketing customer dataset.csv"),
+        "./data/Sales - Marketing customer dataset.csv",
+        "data/Sales - Marketing customer dataset.csv",
+    ]
+    for p in paths_to_try:
+        if os.path.exists(p):
+            return pd.read_csv(p)
+    raise FileNotFoundError("Dataset CSV tidak ditemukan.")
+
+
 def make_gauge(value):
     if value < 30:
         color = "#16A34A"
@@ -438,13 +456,20 @@ def top_feature_chart(model, selected_features):
     return fig
 
 
-# ---------- LOAD MODEL ----------
+# ---------- LOAD MODEL & DATA ----------
 try:
     model, scaler, selected_features, loaded_from_path = load_assets()
     assets_loaded = True
 except Exception as exc:
     assets_loaded = False
     load_error = str(exc)
+
+try:
+    df_raw = load_raw_data()
+    data_loaded = True
+except Exception as exc:
+    data_loaded = False
+    data_error = str(exc)
 
 # ---------- SIDEBAR ----------
 with st.sidebar:
@@ -453,7 +478,14 @@ with st.sidebar:
 
     page = st.radio(
         "Menu",
-        ["🔮 Prediksi", "📘 Panduan Fitur", "📈 Riwayat", "⚙️ Info Model"],
+        [
+            "🏠 Dashboard Overview",
+            "📊 Eksplorasi Data (EDA)",
+            "🔮 Prediksi Churn",
+            "📘 Panduan Fitur",
+            "📈 Riwayat Analisis",
+            "⚙️ Info Model",
+        ],
     )
 
     st.divider()
@@ -478,9 +510,257 @@ if not assets_loaded:
     st.stop()
 
 # =====================================================
-# PAGE: PREDIKSI
+# PAGE: DASHBOARD OVERVIEW
 # =====================================================
-if page == "🔮 Prediksi":
+if page == "🏠 Dashboard Overview":
+    st.markdown('<div class="card"><div class="card-title">🏠 Selamat Datang di ChurnGuard Dashboard!</div>', unsafe_allow_html=True)
+    st.write(
+        """
+        Aplikasi **ChurnGuard** dirancang khusus untuk memprediksi risiko hilangnya pelanggan (*customer churn*)
+        berdasarkan data aktivitas penggunaan, histori belanja, kepuasan pelanggan, dan pola interaksi email marketing.
+        Proyek ini dikembangkan sebagai Tugas UAS Bengkel Koding Data Science, Universitas Dian Nuswantoro.
+        """
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 4 KPI Metrics
+    if data_loaded:
+        total_cust = len(df_raw)
+        churn_count = int(df_raw['churn'].sum())
+        loyal_count = total_cust - churn_count
+        churn_rate = (churn_count / total_cust) * 100
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown(
+                f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div style="font-size: 0.9rem; color: #64748B; font-weight: 600;">TOTAL PELANGGAN</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #1E1B4B; margin-top: 4px;">{total_cust:,}</div>
+                    <div style="font-size: 0.75rem; color: #64748B; margin-top: 4px;">Dalam Database</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with col2:
+            st.markdown(
+                f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div style="font-size: 0.9rem; color: #64748B; font-weight: 600;">CHURN RATE</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #DC2626; margin-top: 4px;">{churn_rate:.2f}%</div>
+                    <div style="font-size: 0.75rem; color: #EF4444; margin-top: 4px;">Pelanggan Berhenti</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with col3:
+            st.markdown(
+                f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div style="font-size: 0.9rem; color: #64748B; font-weight: 600;">PELANGGAN LOYAL</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #16A34A; margin-top: 4px;">{loyal_count:,}</div>
+                    <div style="font-size: 0.75rem; color: #22C55E; margin-top: 4px;">Status Aktif (0)</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with col4:
+            st.markdown(
+                f"""
+                <div class="metric-card" style="text-align: center;">
+                    <div style="font-size: 0.9rem; color: #64748B; font-weight: 600;">PELANGGAN CHURN</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #B91C1C; margin-top: 4px;">{churn_count:,}</div>
+                    <div style="font-size: 0.75rem; color: #EF4444; margin-top: 4px;">Status Berhenti (1)</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    else:
+        st.error(f"Gagal memuat statistik database pelanggan: {data_error}")
+
+    # Brief Overview
+    st.markdown('<div class="card"><div class="card-title">📖 Project Overview & Bisnis Konteks</div>', unsafe_allow_html=True)
+    st.write(
+        """
+        **Mengapa memprediksi Churn sangat krusial?**
+        - **Biaya Akuisisi Lebih Tinggi:** Mendapatkan pelanggan baru jauh lebih mahal (hingga 5x lipat) dibanding mempertahankan pelanggan yang sudah ada.
+        - **Model Machine Learning yang Tepat:** Proyek ini menggunakan algoritma **Decision Tree Classifier (Tuned)** yang dilatih pada 15.000 data pelanggan dengan **17 fitur pilihan** (seperti Skor Kepuasan, Pengeluaran, Jumlah Komplain, dll.).
+        - **Aksi Cepat:** Dashboard ini memprediksi secara real-time status risiko churn seorang pelanggan, dan memberikan saran taktis langsung kepada tim relasi pelanggan (CRM) dan pemasaran.
+        """
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# =====================================================
+# PAGE: EKSPLORASI DATA (EDA)
+# =====================================================
+elif page == "📊 Eksplorasi Data (EDA)":
+    if not data_loaded:
+        st.error(f"Dataset tidak dapat dimuat untuk EDA: {data_error}")
+        st.stop()
+
+    st.markdown('<div class="card"><div class="card-title">📊 Analisis Eksploratif Data (EDA)</div>', unsafe_allow_html=True)
+    st.write(
+        "Gunakan tab-tab di bawah ini untuk melihat hasil eksplorasi data yang sesuai dengan notebook pengerjaan."
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        [
+            "📄 Tampilan Data & Deskripsi",
+            "❓ Missing Value & Duplikasi",
+            "🎯 Distribusi Churn (Target)",
+            "📦 Analisis Outlier & Anomali",
+            "🔥 Heatmap Korelasi",
+        ]
+    )
+
+    with tab1:
+        st.markdown("#### 5 Baris Pertama Dataset (`df.head()`) ")
+        st.dataframe(df_raw.head(), use_container_width=True)
+
+        st.markdown("#### Statistik Deskriptif Dataset (`df.describe()`)")
+        st.dataframe(df_raw.describe(include='all'), use_container_width=True)
+
+    with tab2:
+        col_m1, col_m2 = st.columns([1, 1.2])
+        with col_m1:
+            st.markdown("#### Tabel Kolom dengan Missing Value")
+            missing_count = df_raw.isnull().sum()
+            missing_pct = (missing_count / len(df_raw) * 100).round(2)
+            missing_df = pd.DataFrame({
+                'Jumlah Missing': missing_count,
+                'Persentase (%)': missing_pct
+            }).sort_values('Persentase (%)', ascending=False)
+            missing_filtered = missing_df[missing_df['Jumlah Missing'] > 0]
+            st.dataframe(missing_filtered, use_container_width=True)
+            
+            st.markdown("#### Cek Duplikasi Baris")
+            dup_count = df_raw.duplicated().sum()
+            st.info(f"Jumlah baris duplikat di dataset: **{dup_count}**")
+
+        with col_m2:
+            st.markdown("#### Visualisasi Persentase Missing Value per Kolom")
+            if len(missing_filtered) > 0:
+                fig_missing = go.Figure(
+                    go.Bar(
+                        x=missing_filtered.index,
+                        y=missing_filtered['Persentase (%)'],
+                        text=missing_filtered['Persentase (%)'].map(lambda x: f"{x}%"),
+                        textposition="outside",
+                        marker_color=["#DC2626" if x > 20 else "#F59E0B" if x > 5 else "#3B82F6" for x in missing_filtered['Persentase (%)']],
+                    )
+                )
+                fig_missing.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=10, t=30, b=10),
+                    yaxis_title="Persentase Missing (%)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                )
+                st.plotly_chart(fig_missing, use_container_width=True)
+            else:
+                st.success("Tidak ada missing value terdeteksi pada dataset.")
+
+    with tab3:
+        churn_counts = df_raw['churn'].value_counts()
+        churn_pct = df_raw['churn'].value_counts(normalize=True) * 100
+        dist_df = pd.DataFrame({
+            'Jumlah': churn_counts,
+            'Persentase (%)': churn_pct.round(2)
+        })
+        
+        col_c1, col_c2 = st.columns([1, 1.5])
+        with col_c1:
+            st.markdown("#### Tabel Distribusi Target Churn")
+            st.dataframe(dist_df, use_container_width=True)
+            st.warning("⚠️ **Catatan Imbalanced Data:** Rasio Tidak Churn : Churn adalah sekitar **5.5 : 1**. Oleh karena itu, fokus evaluasi model dialihkan ke metrik F1-Score dan Recall kelas Churn (1)!")
+
+        with col_c2:
+            st.markdown("#### Visualisasi Distribusi Target")
+            fig_target = go.Figure()
+            fig_target.add_trace(
+                go.Bar(
+                    x=['Tidak Churn (0)', 'Churn (1)'],
+                    y=churn_counts.values,
+                    text=[f"{val:,} ({pct:.1f}%)" for val, pct in zip(churn_counts.values, churn_pct.values)],
+                    textposition="auto",
+                    marker_color=['#3B82F6', '#EF4444'],
+                )
+            )
+            fig_target.update_layout(
+                height=300,
+                margin=dict(l=10, r=10, t=30, b=10),
+                yaxis_title="Jumlah Pelanggan",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+            )
+            st.plotly_chart(fig_target, use_container_width=True)
+
+    with tab4:
+        st.markdown("#### Boxplot Distribusi Fitur Numerik (Analisis Outlier)")
+        num_cols = ['age', 'total_spent', 'avg_order_value', 'lifetime_value',
+                    'avg_session_time', 'pages_per_session', 'total_visits',
+                    'satisfaction_score', 'marketing_spend_per_user']
+        
+        selected_boxplot_col = st.selectbox("Pilih Fitur Numerik untuk Boxplot", num_cols)
+        
+        fig_box = go.Figure(
+            go.Box(
+                y=df_raw[selected_boxplot_col].dropna(),
+                name=selected_boxplot_col,
+                boxpoints='outliers',
+                marker_color='#3B82F6',
+            )
+        )
+        fig_box.update_layout(
+            height=300,
+            margin=dict(l=10, r=10, t=30, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
+        st.plotly_chart(fig_box, use_container_width=True)
+        
+        st.markdown("#### Cek Anomali Fitur Age")
+        col_a1, col_a2 = st.columns(2)
+        with col_a1:
+            st.info(f"Jumlah baris Usia < 0 (Negatif): **{(df_raw['age'] < 0).sum()}**")
+            st.info(f"Jumlah baris Usia > 80: **{(df_raw['age'] > 80).sum()}**")
+        with col_a2:
+            st.info(f"Usia Minimum di Dataset: **{df_raw['age'].min()}**")
+            st.info(f"Usia Maksimum di Dataset: **{df_raw['age'].max()}**")
+
+    with tab5:
+        st.markdown("#### Heatmap Korelasi Fitur Numerik")
+        
+        num_cols_corr = df_raw.select_dtypes(include=[np.number]).columns.tolist()
+        if 'customer_id' in num_cols_corr:
+            num_cols_corr.remove('customer_id')
+        corr_matrix = df_raw[num_cols_corr].corr()
+        
+        fig_corr, ax_corr = plt.subplots(figsize=(10, 7))
+        sns.heatmap(
+            corr_matrix,
+            annot=True, fmt='.2f',
+            cmap='coolwarm', center=0,
+            linewidths=0.5,
+            annot_kws={'size': 6},
+            ax=ax_corr
+        )
+        ax_corr.set_title('Heatmap Korelasi Fitur Numerik', fontsize=12, fontweight='bold')
+        fig_corr.patch.set_alpha(0.0)
+        plt.xticks(rotation=45, ha='right', fontsize=8)
+        plt.yticks(fontsize=8)
+        plt.tight_layout()
+        st.pyplot(fig_corr)
+        
+        st.markdown("#### Top Korelasi Absolut Terhadap Churn")
+        churn_corr = corr_matrix['churn'].drop('churn').abs().sort_values(ascending=False)
+        st.dataframe(churn_corr.head(10).to_frame('Korelasi Absolut terhadap Churn'), use_container_width=True)
+
+# =====================================================
+# PAGE: PREDIKSI CHURN
+# =====================================================
+elif page == "🔮 Prediksi Churn":
     st.markdown('<div class="card"><div class="card-title">🧪 Pilih Contoh Data atau Isi Manual</div>', unsafe_allow_html=True)
     preset_name = st.selectbox(
         "Gunakan contoh cepat",
@@ -633,9 +913,9 @@ elif page == "📘 Panduan Fitur":
             st.write(f"**Contoh input:** {info['example']}")
 
 # =====================================================
-# PAGE: RIWAYAT
+# PAGE: RIWAYAT ANALISIS
 # =====================================================
-elif page == "📈 Riwayat":
+elif page == "📈 Riwayat Analisis":
     st.markdown('<div class="card"><div class="card-title">📈 Riwayat Prediksi</div>', unsafe_allow_html=True)
     if st.session_state.prediction_history:
         history_df = pd.DataFrame(st.session_state.prediction_history)
