@@ -127,9 +127,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---------- SESSION STATE ----------
-if "prediction_history" not in st.session_state:
-    st.session_state.prediction_history = []
+# Session state prediction history removed per user request
 
 # ---------- FEATURE DEFINITIONS ----------
 SCALE_COLS = [
@@ -482,9 +480,6 @@ with st.sidebar:
             "🏠 Dashboard Overview",
             "📊 Eksplorasi Data (EDA)",
             "🔮 Prediksi Churn",
-            "📘 Panduan Fitur",
-            "📈 Riwayat Analisis",
-            "⚙️ Info Model",
         ],
     )
 
@@ -584,10 +579,46 @@ if page == "🏠 Dashboard Overview":
         """
         **Mengapa memprediksi Churn sangat krusial?**
         - **Biaya Akuisisi Lebih Tinggi:** Mendapatkan pelanggan baru jauh lebih mahal (hingga 5x lipat) dibanding mempertahankan pelanggan yang sudah ada.
-        - **Model Machine Learning yang Tepat:** Proyek ini menggunakan algoritma **Decision Tree Classifier (Tuned)** yang dilatih pada 15.000 data pelanggan dengan **17 fitur pilihan** (seperti Skor Kepuasan, Pengeluaran, Jumlah Komplain, dll.).
+        - **Model Machine Learning yang Tepat:** Proyek ini menggunakan algoritma **Decision Tree - Skenario Direct** yang dilatih pada 15.000 data pelanggan dengan **17 fitur pilihan** (seperti Skor Kepuasan, Pengeluaran, Jumlah Komplain, dll.).
         - **Aksi Cepat:** Dashboard ini memprediksi secara real-time status risiko churn seorang pelanggan, dan memberikan saran taktis langsung kepada tim relasi pelanggan (CRM) dan pemasaran.
         """
     )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Model Info & Asset Status cards merged here
+    col_info1, col_info2 = st.columns(2)
+    with col_info1:
+        st.markdown('<div class="card"><div class="card-title">🤖 Informasi Model & Status Sistem</div>', unsafe_allow_html=True)
+        st.write("**Tipe Model:** Decision Tree Classifier (Skenario Direct)")
+        st.write("**Dataset Asal:** Sales & Marketing Customer Dataset")
+        st.write("**Metrik Performa:** Akurasi: 86.47% | F1-Score: 0.54 (Model Terbaik)")
+        st.write("**Jalur Aset Model:**")
+        st.code(loaded_from_path)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_info2:
+        st.markdown('<div class="card"><div class="card-title">📁 Status File Deployment</div>', unsafe_allow_html=True)
+        if assets_loaded:
+            st.success("✓ Model (`best_model.pkl`) berhasil dimuat")
+            st.success("✓ Scaler (`scaler.pkl`) berhasil dimuat")
+            st.success("✓ Fitur Terpilih (`selected_features.pkl`) berhasil dimuat")
+        else:
+            st.error("Model assets belum termuat secara lengkap.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card"><div class="card-title">🧩 17 Fitur Terpilih Yang Digunakan Model</div>', unsafe_allow_html=True)
+    chips = "".join([f'<span class="feature-chip">{FEATURE_INFO.get(f, {}).get("label", f)}</span>' for f in selected_features])
+    st.markdown(chips, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card"><div class="card-title">📘 Panduan Fitur (Arti & Keterangan Parameter Input)</div>', unsafe_allow_html=True)
+    st.write("Bagian di bawah ini menjelaskan arti dan pentingnya masing-masing dari 17 parameter pelanggan yang digunakan oleh model.")
+    for feature in SCALE_COLS:
+        info = FEATURE_INFO[feature]
+        with st.expander(f"{info['label']} ({feature})"):
+            st.write(f"**Artinya:** {info['simple']}")
+            st.write(f"**Kenapa penting:** {info['why']}")
+            st.write(f"**Contoh input:** {info['example']}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
@@ -873,18 +904,7 @@ elif page == "🔮 Prediksi Churn":
                 st.write("- Tawarkan upselling/cross-selling karena pelanggan relatif loyal.")
                 st.write("- Ajak mengikuti referral atau loyalty program.")
 
-            st.session_state.prediction_history.insert(
-                0,
-                {
-                    "Waktu": datetime.now().strftime("%d %b %Y %H:%M"),
-                    "Risiko": label,
-                    "Probabilitas Churn": f"{percentage:.1f}%",
-                    "Usia": age,
-                    "Kepuasan": satisfaction_score,
-                    "Support Tickets": support_tickets,
-                    "Hari Sejak Beli": days_since_last_purchase,
-                },
-            )
+            # History log deleted per user request
         else:
             st.info("Isi data di sebelah kiri, lalu klik tombol prediksi.")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -897,63 +917,9 @@ elif page == "🔮 Prediksi Churn":
             st.caption("Model tidak memiliki feature_importances_.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# =====================================================
-# PAGE: PANDUAN FITUR
-# =====================================================
-elif page == "📘 Panduan Fitur":
-    st.markdown('<div class="card"><div class="card-title">📘 Arti Fitur yang Dipakai Model</div>', unsafe_allow_html=True)
-    st.write("Halaman ini menjelaskan input yang ada di form prediksi. Kamu bisa pakai bagian ini untuk presentasi juga.")
-    st.markdown("</div>", unsafe_allow_html=True)
+# Halaman Panduan Fitur dipindahkan ke halaman Dashboard Overview sesuai permintaan user.
 
-    for feature in SCALE_COLS:
-        info = FEATURE_INFO[feature]
-        with st.expander(f"{info['label']} ({feature})"):
-            st.write(f"**Artinya:** {info['simple']}")
-            st.write(f"**Kenapa penting:** {info['why']}")
-            st.write(f"**Contoh input:** {info['example']}")
-
-# =====================================================
-# PAGE: RIWAYAT ANALISIS
-# =====================================================
-elif page == "📈 Riwayat Analisis":
-    st.markdown('<div class="card"><div class="card-title">📈 Riwayat Prediksi</div>', unsafe_allow_html=True)
-    if st.session_state.prediction_history:
-        history_df = pd.DataFrame(st.session_state.prediction_history)
-        st.dataframe(history_df, use_container_width=True)
-        if st.button("Hapus Riwayat", use_container_width=True):
-            st.session_state.prediction_history = []
-            st.rerun()
-    else:
-        st.info("Belum ada riwayat. Jalankan prediksi dulu di menu Prediksi.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# =====================================================
-# PAGE: INFO MODEL
-# =====================================================
-elif page == "⚙️ Info Model":
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<div class="card"><div class="card-title">🤖 Informasi Model</div>', unsafe_allow_html=True)
-        st.write("**Model:** Decision Tree Classifier")
-        st.write("**Dataset:** Sales & Marketing Customer Dataset")
-        st.write("**Jumlah data:** 15.000 records")
-        st.write("**Target:** churn")
-        st.write("**File model dimuat dari:**")
-        st.code(loaded_from_path)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col2:
-        st.markdown('<div class="card"><div class="card-title">📁 Status File Deployment</div>', unsafe_allow_html=True)
-        st.success("best_model.pkl ditemukan")
-        st.success("scaler.pkl ditemukan")
-        st.success("selected_features.pkl ditemukan")
-        st.info("Pastikan requirements.txt berisi: streamlit, pandas, numpy, scikit-learn, joblib, plotly")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card"><div class="card-title">🧩 Fitur yang Dipakai Saat Prediksi</div>', unsafe_allow_html=True)
-    chips = "".join([f'<span class="feature-chip">{FEATURE_INFO.get(f, {}).get("label", f)}</span>' for f in selected_features])
-    st.markdown(chips, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+# Halaman Riwayat Analisis dan Info Model dipindahkan/dihapus sesuai permintaan user.
 
 st.markdown(
     """
