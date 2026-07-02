@@ -294,25 +294,6 @@ PRESETS = {
         "satisfaction_score": 2,
         "nps_score": 2,
     },
-    "Pelanggan rata-rata": {
-        "age": 35,
-        "tenure_days": 660,
-        "days_since_last_purchase": 120,
-        "last_3_month_purchase_freq": 3,
-        "total_visits": 12,
-        "avg_session_time": 8.0,
-        "pages_per_session": 4.0,
-        "email_open_rate": 0.30,
-        "email_click_rate": 0.10,
-        "support_tickets": 2,
-        "total_spent": 350.0,
-        "avg_order_value": 50.0,
-        "lifetime_value": 700.0,
-        "marketing_spend_per_user": 15.0,
-        "delivery_delay_days": 2,
-        "satisfaction_score": 4,
-        "nps_score": 8,
-    },
 }
 
 # ---------- HELPER FUNCTIONS ----------
@@ -579,7 +560,7 @@ if page == "🏠 Dashboard Overview":
         """
         **Mengapa memprediksi Churn sangat krusial?**
         - **Biaya Akuisisi Lebih Tinggi:** Mendapatkan pelanggan baru jauh lebih mahal (hingga 5x lipat) dibanding mempertahankan pelanggan yang sudah ada.
-        - **Model Machine Learning yang Tepat:** Proyek ini menggunakan algoritma **Decision Tree - Skenario Direct** yang dilatih pada 15.000 data pelanggan dengan **17 fitur pilihan** (seperti Skor Kepuasan, Pengeluaran, Jumlah Komplain, dll.).
+        - **Model Machine Learning yang Tepat:** Proyek ini menggunakan algoritma **Decision Tree - Skenario Preprocessing** yang dilatih pada 15.000 data pelanggan dengan **17 fitur pilihan** (seperti Skor Kepuasan, Pengeluaran, Jumlah Komplain, dll.).
         - **Aksi Cepat:** Dashboard ini memprediksi secara real-time status risiko churn seorang pelanggan, dan memberikan saran taktis langsung kepada tim relasi pelanggan (CRM) dan pemasaran.
         """
     )
@@ -589,9 +570,9 @@ if page == "🏠 Dashboard Overview":
     col_info1, col_info2 = st.columns(2)
     with col_info1:
         st.markdown('<div class="card"><div class="card-title">🤖 Informasi Model & Status Sistem</div>', unsafe_allow_html=True)
-        st.write("**Tipe Model:** Decision Tree Classifier (Skenario Direct)")
+        st.write("**Tipe Model:** Decision Tree Classifier (Skenario Preprocessing)")
         st.write("**Dataset Asal:** Sales & Marketing Customer Dataset")
-        st.write("**Metrik Performa:** Akurasi: 86.47% | F1-Score: 0.54 (Model Terbaik)")
+        st.write("**Metrik Performa:** Akurasi: 86.00% | F1-Score: 0.54 | Recall: 0.54 (Model Terbaik)")
         st.write("**Jalur Aset Model:**")
         st.code(loaded_from_path)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -796,7 +777,7 @@ elif page == "🔮 Prediksi Churn":
     preset_name = st.selectbox(
         "Gunakan contoh cepat",
         list(PRESETS.keys()),
-        index=2,
+        index=0,
         help="Pilih contoh agar kamu tidak perlu mengisi dari nol. Nilainya masih bisa kamu ubah manual.",
     )
     preset = PRESETS[preset_name]
